@@ -232,7 +232,8 @@ def draw_image(image, notation):
   h = notation["image-size"][0]
   w = notation["image-size"][1]
   for obj in objs:
-    rect = patches.Rectangle((int(obj["x"]* w), int(obj["y"] * h)), int(obj["w"] * w), int(obj["h"] * h), linewidth=1, edgecolor='r', facecolor='none') 
+    plt.text(round(obj["x"]* w), round(obj["y"] * h), obj['class'], backgroundcolor='r', color='w', fontweight='bold')
+    rect = patches.Rectangle((round(obj["x"]* w), round(obj["y"] * h)), round(obj["w"] * w), round(obj["h"] * h), linewidth=2, edgecolor='r', facecolor='none') 
     ax.add_patch(rect)
   
   plt.show()
