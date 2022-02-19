@@ -209,14 +209,8 @@ def bbox_giou(boxes1, boxes2):
     return giou
 
 
-def open_image(path, name, show = False):
-    if platform.system() == 'Windows':
-        idx = name.replace('/'," ").split(" ")
-        name = os.path.join(idx[0], idx[1])
-    
-    path = os.path.join(path,name)
+def open_image(path, show = False):
     img = image.imread(path)
-    
     if show:
         plt.figure(figsize = (15,15))
         plt.imshow(img, interpolation='nearest')
