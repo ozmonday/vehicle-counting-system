@@ -1,8 +1,10 @@
 cfg = {
   'image_size' : (416, 416, 3),
-  'anchors' : [4, 7, 9, 17, 17, 40, 31, 51, 49, 83, 82, 125, 98, 212, 175, 169, 194, 311],
+  'anchors' : [16, 16, 32, 23, 25, 40, 53, 41, 46, 74, 79, 61, 106, 78, 84, 110, 136, 99, 118, 145, 174, 131, 163, 200, 248, 170, 229, 281, 344, 230],
   'strides' : [8, 16, 32],
   'xyscale': [1.2, 1.1, 1.05],
+  'detector_count' : 3,
+  'anchor_size_perdetector': 5,
 
   # Training
   'iou_loss_thresh': 0.5,
@@ -12,5 +14,5 @@ cfg = {
   # Inference
   'max_boxes': 100,
   'iou_threshold': 0.413,
-  'score_threshold': 0.3,
+  'score_threshold': 0.5,
 }

@@ -73,7 +73,7 @@ class YoloV4(object):
         img = img / 255
         img_exp = np.expand_dims(img, axis=0)
         predic = self.inferance_model.predict(img_exp)
-        df = utill.get_detection_data(predic, img_ori.shape)
+        df = utill.get_detection_data(predic, img_ori.shape, self.class_name)
         utill.plot_bbox(img_ori, df, plot_img)
 
     def predict_raw(self, frame):
@@ -110,7 +110,7 @@ class YoloV4(object):
                     gt_file.write(f'face {x1} {y1} {x2} {y2}\n')
     
     def export_predict(self, image_anotation, image_folder_path, export_path, betch_size=2):
-        filenames = [line['name'] for line in image_anotation]
+        filenames = [line['filename'] for line in image_anotation]
         img_paths = [os.path.join(image_folder_path, name) for name in filenames]
         for idx in tqdm(range(0, len(img_paths), betch_size)):
             paths = img_paths[idx:idx+2]

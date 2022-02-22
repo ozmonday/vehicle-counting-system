@@ -249,29 +249,37 @@ def plot_bbox(img, detections, show_img=True):
     ax2.imshow(img, interpolation='nearest')
 
     for _, row in detections.iterrows():
-        x1, y1, x2, y2, score, w, h = row.values
-        rect = patches.Rectangle((int(x1), int(y1)), int(w), int(h), linewidth=3, edgecolor='g', facecolor='none')
+        x1, y1, x2, y2, cls, score, w, h = row.values
+        plt.text(round(x1), round(y1), cls, backgroundcolor='r', color='w', fontweight='bold')
+        rect = patches.Rectangle((int(x1), int(y1)), int(w), int(h), linewidth=2, edgecolor='r', facecolor='none')
         ax2.add_patch(rect)
         
     if show_img:
         plt.show()
 
-def draw_bbox(raw_img, detections):
+def draw_bbox(raw_img, detections, show_text = True):
 
     raw_img = np.array(raw_img)
     scale = max(raw_img.shape[0:2]) / 416
     line_width = int(1 * scale)
 
     for _, row in detections.iterrows():
-        x1, y1, x2, y2, score, w, h = row.values
+        x1, y1, x2, y2, cls, score, w, h = row.values
         cv2.rectangle(raw_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), line_width)
-
+        if show_text:
+            text = f'{cls} {score:.2f}'
+            font = cv2.FONT_HERSHEY_DUPLEX
+            font_scale = max(0.3 * scale, 0.3)
+            thickness = max(int(1 * scale), 1)
+            (text_width, text_height) = cv2.getTextSize(text, font, fontScale=font_scale, thickness=thickness)[0]
+            cv2.rectangle(raw_img, (x1 - line_width//2, y1 - text_height), (x1 + text_width, y1), 'r', cv2.FILLED)
+            cv2.putText(raw_img, text, (x1, y1), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     return raw_img
         
 
 
 
-def get_detection_data(model_outputs, img_shape):
+def get_detection_data(model_outputs, img_shape, class_names):
     """
     :param img: target raw image
     :param model_outputs: outputs from inference_model
@@ -289,12 +297,12 @@ def get_detection_data(model_outputs, img_shape):
     df = pd.DataFrame(boxes, columns=['x1', 'y1', 'x2', 'y2'])
     df[['x1', 'x2']] = (df[['x1', 'x2']] * w).astype('int64')
     df[['y1', 'y2']] = (df[['y1', 'y2']] * h).astype('int64')
-    #df['class_name'] = np.array(class_names)[classes.astype('int64')]
+    df['class_name'] = np.array(class_names)[classes.astype('int64')]
     df['score'] = scores
     df['w'] = df['x2'] - df['x1']
     df['h'] = df['y2'] - df['y1']
 
-    # print(f'# of bboxes: {num_bboxes}')
+    print(f'# of bboxes: {num_bboxes}')
     return df
 
 
