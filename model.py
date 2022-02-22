@@ -96,18 +96,18 @@ class YoloV4(object):
     
     def export_gt(self, image_notation, image_folder_path, export_path):
         for line in image_notation:
-            filename = os.path.join(image_folder_path, line['name'])
-            img = utill.open_image(filename)
+            filename = os.path.join(image_folder_path, line['filename'])
+            img = line['image-size']
             filename = filename.split(os.sep)[-1].split('.')[0]
             output_path = os.path.join(export_path, filename+'.txt')
 
             with open(output_path, 'w') as gt_file:
                 for object in line['objects']:
-                    x1 = object['data'][0] * img.shape[0]
-                    y1 = object['data'][1] * img.shape[1]
-                    x2 = x1 + (object['data'][2] * img.shape[0])
-                    y2 = y1 + (object['data'][3] * img.shape[1])
-                    gt_file.write(f'face {x1} {y1} {x2} {y2}\n')
+                    x1 = round(object['x'] * img[1])
+                    y1 = round(object['y'] * img[0])
+                    x2 = round(x1 + (object['w'] * img[1]))
+                    y2 = round(y1 + (object['h'] * img[0]))
+                    gt_file.write('{0} {1} {2} {3} {4}\n'.format(object['class'], x1, y1, x2, y2))
     
     def export_predict(self, image_anotation, image_folder_path, export_path, betch_size=2):
         filenames = [line['filename'] for line in image_anotation]
@@ -141,7 +141,7 @@ class YoloV4(object):
                 with open(output_path, 'w') as pred_file:
                     for box_idx in range(num_boxes):
                         b = boxes[box_idx]
-                        pred_file.write(f'{cls_names[box_idx]} {scores[box_idx]} {b[0]} {b[1]} {b[2]} {b[3]}\n')
+                        pred_file.write(f'{cls_names[box_idx]} {scores[box_idx]} {round(b[0])} {round(b[1])} {round(b[2])} {round(b[3])}\n')
 
 
     def eval_map(self, gt_folder_path, pred_folder_path, temp_json_folder_path, output_files_path):

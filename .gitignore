@@ -1,1 +1,4 @@
 assets/dataset
+assets/gt_train
+assets/predict
+assets/weight.h5
