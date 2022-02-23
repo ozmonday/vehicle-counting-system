@@ -60,7 +60,7 @@ class YoloV4(object):
         self.inferance_model = models.Model(input_layer, nms)
 
         self.training_model.compile(optimizer=optimizers.Adam(
-            learning_rate=1e-3), loss=lambda y_true, y_pred: y_pred)
+            learning_rate=1e-4), loss=lambda y_true, y_pred: y_pred)
     
     def preprocessing_image(self, img):
         img = img /255
@@ -82,6 +82,7 @@ class YoloV4(object):
         frame_exp = np.expand_dims(frame, axis=0)
         predic = self.inferance_model(frame_exp)
         df = utill.get_detection_data(predic, frame.shape)
+        print(df)
         return utill.draw_bbox(frame, df)
     
     def fit(self, data_train, data_validation, initial_epoch, epochs, callback=None):
