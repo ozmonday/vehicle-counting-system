@@ -74,6 +74,7 @@ class YoloV4(object):
         img_exp = np.expand_dims(img, axis=0)
         predic = self.inferance_model.predict(img_exp)
         df = utill.get_detection_data(predic, img_ori.shape, self.class_name)
+        print(df)
         utill.plot_bbox(img_ori, df, plot_img)
 
     def predict_raw(self, frame):
