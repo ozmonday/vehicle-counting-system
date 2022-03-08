@@ -111,14 +111,14 @@ def yolo_loss(args, classes, iou_loss_thresh, anchors):
     return ciou_loss + conf_loss + prob_loss
 
 
-def yolo_loss_lite(args, number_of_class, iou_loss_thresh, anchors, stride):
+def yolo_loss_lite(args, classes, iou_loss_thresh, anchors, stride):
     conv = args[0]
     label = args[1]
     true_boxes = args[2]
 
-    predic = yolo_postulate(conv, anchors[0], stride, number_of_class)
+    predic = yolo_postulate(conv, anchors[0], stride, classes)
 
-    cio_loss, conf_loss, prob_loss = yolo_loss_layer(conv, predic, label, true_boxes, stride, number_of_class, iou_loss_thresh)
+    cio_loss, conf_loss, prob_loss = yolo_loss_layer(conv, predic, label, true_boxes, stride, classes, iou_loss_thresh)
     cio_loss = cio_loss + 3.54
     conf_loss = conf_loss + 64.3
     prob_loss = prob_loss + 1
