@@ -13,7 +13,7 @@ import json
 import matplotlib.pyplot as plt
 
 from tensorflow.keras import layers, models, optimizers
-from layer import CSPDarkNet53, PANet, yolo_detector
+from layer import MobileNetV2, get_boxes
 
 
 class YoloV4(object):
@@ -37,9 +37,7 @@ class YoloV4(object):
 
     def build_model(self, load_pretrained=True):
         input_layer = layers.Input(self.image_size)
-        backbone = CSPDarkNet53(input_layer)
-        output_layer = PANet(backbone, self.number_of_class, self.anchor_size)
-        self.yolo_model = models.Model(input_layer, output_layer)
+        self.yolo_model = MobileNetV2(input_layer, self.number_of_class, self.anchor_size)
 
         if load_pretrained:
             self.yolo_model.load_weights(self.weight_path)
@@ -48,13 +46,12 @@ class YoloV4(object):
         y_true = [layers.Input(shape=(output.shape[1], output.shape[2], self.anchor_size, (self.number_of_class + 5))) for output in self.yolo_model.outputs]
         y_true.append(layers.Input(shape=(self.max_boxes, 4)))
         
-        loss_list = layers.Lambda(loss.yolo_loss, arguments={
-                                  'classes': self.number_of_class, 'iou_loss_thresh': self.iou_loss_thresh, 'anchors': self.anchors})([*self.yolo_model.outputs, *y_true])
+        loss_list = layers.Lambda(loss.yolo_loss_lite, arguments={
+                                  'classes': self.number_of_class, 'iou_loss_thresh': self.iou_loss_thresh, 'anchors': self.anchors, 'stride': self.strides})([*self.yolo_model.outputs, *y_true])
         self.training_model = models.Model(
             [self.yolo_model.input, *y_true], loss_list)
 
-        yolo_output = yolo_detector(self.yolo_model.outputs, anchors=self.anchors,
-                                         classes=self.number_of_class, strides=self.strides, xyscale=self.xyscale)
+        yolo_output = get_boxes(self.yolo_model.outputs[0], self.anchors[0], self.number_of_class, self.strides, self.xyscale)
         nms = utill.nms(yolo_output, input_shape=self.image_size, num_class=self.number_of_class,
                            iou_threshold=self.iou_threshold, score_threshold=self.score_threshold)
         self.inferance_model = models.Model(input_layer, nms)
