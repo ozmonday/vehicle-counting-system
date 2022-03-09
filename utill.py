@@ -272,7 +272,7 @@ def draw_bbox(raw_img, detections, show_text = True):
             font_scale = max(0.3 * scale, 0.3)
             thickness = max(int(1 * scale), 1)
             (text_width, text_height) = cv2.getTextSize(text, font, fontScale=font_scale, thickness=thickness)[0]
-            cv2.rectangle(raw_img, (x1 - line_width//2, y1 - text_height), (x1 + text_width, y1), 'r', cv2.FILLED)
+            cv2.rectangle(raw_img, (x1 - line_width//2, y1 - text_height), (x1 + text_width, y1), (255, 0, 0), cv2.FILLED)
             cv2.putText(raw_img, text, (x1, y1), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     return raw_img
         
@@ -297,12 +297,14 @@ def get_detection_data(model_outputs, img_shape, class_names):
     df = pd.DataFrame(boxes, columns=['x1', 'y1', 'x2', 'y2'])
     df[['x1', 'x2']] = (df[['x1', 'x2']] * w).astype('int64')
     df[['y1', 'y2']] = (df[['y1', 'y2']] * h).astype('int64')
-    df['class_name'] = np.array(class_names)[classes.astype('int64')]
+    if type(classes) != np.ndarray:
+        df['class_name'] = np.array(class_names)[classes.numpy().astype('int64')]
+    else:
+        df['class_name'] = np.array(class_names)[classes.astype('int64')]
     df['score'] = scores
     df['w'] = df['x2'] - df['x1']
     df['h'] = df['y2'] - df['y1']
 
-    print(f'# of bboxes: {num_bboxes}')
     return df
 
 
@@ -504,3 +506,16 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label, out
     # close the plot
     # plt.close()
 
+
+def filtter(boxes, threshold = 0.75):
+    index = []
+    for idx in range(len(boxes)):
+        box_one = np.array([boxes.iloc[idx,0], boxes.iloc[idx,1], boxes.iloc[idx,6], boxes.iloc[idx,7]])
+        for idx2 in range(idx+1, len(boxes)):
+            box_two = np.array([boxes.iloc[idx2,0], boxes.iloc[idx2,1], boxes.iloc[idx2,6], boxes.iloc[idx2,7]])
+            iou = bbox_iou(box_one, box_two)
+            if iou >= threshold:
+                index.append(idx2)
+      
+    boxes = boxes.drop(boxes.index[index])
+    return boxes

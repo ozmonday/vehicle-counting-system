@@ -77,14 +77,14 @@ class YoloV4(object):
         print(df)
         utill.plot_bbox(img_ori, df, plot_img)
 
-    def predict_raw(self, frame):
-        frame = cv2.resize(frame, self.image_size[:2])
+    def predict_raw(self, frame_ori):
+        frame = tf.image.resize(frame_ori, self.image_size[:2])
         frame = frame /255
         frame_exp = np.expand_dims(frame, axis=0)
         predic = self.inferance_model(frame_exp)
-        df = utill.get_detection_data(predic, frame.shape)
-        print(df)
-        return utill.draw_bbox(frame, df)
+        df = utill.get_detection_data(predic, frame_ori.shape, self.class_name)
+        df = utill.filtter(df, 0.55)
+        return utill.draw_bbox(frame_ori, df)
     
     def fit(self, data_train, data_validation, initial_epoch, epochs, callback=None):
         self.training_model.fit(data_train, steps_per_epoch=len(
