@@ -105,7 +105,7 @@ def yolo_loss(args, classes, iou_loss_thresh, anchors):
                                                                    classes, iou_loss_thresh)
 
     ciou_loss = (lbbox_ciou_loss + sbbox_ciou_loss + mbbox_ciou_loss) * 3.54
-    conf_loss = (lbbox_conf_loss + sbbox_conf_loss + mbbox_conf_loss) * 64.3
+    conf_loss = (lbbox_conf_loss + sbbox_conf_loss + mbbox_conf_loss) * 64.3 #change
     prob_loss = (lbbox_prob_loss + sbbox_prob_loss + mbbox_prob_loss) * 1
 
     return ciou_loss + conf_loss + prob_loss
@@ -120,7 +120,7 @@ def yolo_loss_lite(args, classes, iou_loss_thresh, anchors, stride):
 
     cio_loss, conf_loss, prob_loss = yolo_loss_layer(conv, predic, label, true_boxes, stride, classes, iou_loss_thresh)
     cio_loss = cio_loss + 3.54
-    conf_loss = conf_loss + 64.3
+    conf_loss = conf_loss + 10.3
     prob_loss = prob_loss + 1
 
     return conf_loss + cio_loss + prob_loss

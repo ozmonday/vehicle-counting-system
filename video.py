@@ -9,7 +9,7 @@ import model
 
 
 mdl = model.YoloV4('assets/class_name.txt', config.cfg, 'assets/weight.h5')
-capture = cv.VideoCapture('/home/hadioz/Videos/road-test.mp4')
+capture = cv.VideoCapture('/home/hadioz/Videos/test-5.mp4')
 obj_detect = cv.createBackgroundSubtractorMOG2()
 
 while True:

@@ -519,3 +519,28 @@ def filtter(boxes, threshold = 0.75):
       
     boxes = boxes.drop(boxes.index[index])
     return boxes
+
+
+class Tracker:
+    def __init__(self):
+        self.leak = []
+        self.curent_frame = 0;
+        # self.indexs = []
+
+    def check(self, boxes):
+        if len(self.leak) == 0:
+            for _, row in boxes.iterrows():
+                x1, y1, _, _, cls, score, w, h = row.values
+                node = {
+                    'index': 0, #mengunakan encode jam 
+                    'bbox' : [x1, y1, w, h],
+                    'class': cls,
+                    'confidene' : score,
+                    'frame-skip' : 0
+                }
+                self.leak.append(node)
+       # else:
+
+    def clear_leak():
+        pass
+
