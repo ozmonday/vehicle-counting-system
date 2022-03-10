@@ -13,10 +13,10 @@ import json
 import matplotlib.pyplot as plt
 
 from tensorflow.keras import layers, models, optimizers
-from layer import MobileNetV2, get_boxes
+from layer import FPN_light, MobileNet, yolo_detector_lite
 
 
-class YoloV4(object):
+class MNetYolo(object):
     def __init__(self, class_name_path, config, weight_path=None):
         super().__init__()
         self.anchor_size = config['anchor_size_perdetector']
@@ -37,7 +37,9 @@ class YoloV4(object):
 
     def build_model(self, load_pretrained=True):
         input_layer = layers.Input(self.image_size)
-        self.yolo_model = MobileNetV2(input_layer, self.number_of_class, self.anchor_size)
+        backbone = MobileNet(input_layer)
+        output_layer = FPN_light(backbone, self.number_of_class, self.anchor_size)
+        self.yolo_model = models.Model(input_layer, output_layer)
 
         if load_pretrained:
             self.yolo_model.load_weights(self.weight_path)
@@ -47,17 +49,18 @@ class YoloV4(object):
         y_true.append(layers.Input(shape=(self.max_boxes, 4)))
         
         loss_list = layers.Lambda(loss.yolo_loss_lite, arguments={
-                                  'classes': self.number_of_class, 'iou_loss_thresh': self.iou_loss_thresh, 'anchors': self.anchors, 'stride': self.strides})([*self.yolo_model.outputs, *y_true])
+                                  'classes': self.number_of_class, 'iou_loss_thresh': self.iou_loss_thresh, 'anchors': self.anchors, 'strides': self.strides})([*self.yolo_model.outputs, *y_true])
         self.training_model = models.Model(
             [self.yolo_model.input, *y_true], loss_list)
 
-        yolo_output = get_boxes(self.yolo_model.outputs[0], self.anchors[0], self.number_of_class, self.strides, self.xyscale)
+        yolo_output = yolo_detector_lite(self.yolo_model.outputs, anchors=self.anchors,
+                                         classes=self.number_of_class, strides=self.strides, xyscale=self.xyscale)
         nms = utill.nms(yolo_output, input_shape=self.image_size, num_class=self.number_of_class,
                            iou_threshold=self.iou_threshold, score_threshold=self.score_threshold)
         self.inferance_model = models.Model(input_layer, nms)
 
         self.training_model.compile(optimizer=optimizers.Adam(
-            learning_rate=1e-4), loss=lambda y_true, y_pred: y_pred)
+            learning_rate=1e-3), loss=lambda y_true, y_pred: y_pred)
     
     def preprocessing_image(self, img):
         img = img /255
@@ -80,7 +83,7 @@ class YoloV4(object):
         frame_exp = np.expand_dims(frame, axis=0)
         predic = self.inferance_model(frame_exp)
         df = utill.get_detection_data(predic, frame.shape)
-        print(df)
+        df = utill.filtter(df, 0.7)
         return utill.draw_bbox(frame, df)
     
     def fit(self, data_train, data_validation, initial_epoch, epochs, callback=None):

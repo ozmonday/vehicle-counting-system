@@ -41,6 +41,24 @@ def _make_divisible(v, divisor, min_value=None):
     return new_v
 
 
+def depth_wise_separable_convolution(inputs, pointwise_filters, depth_multiplier=1, strides=(1, 1), block_id=0):
+    channel_axis = 1 if backend.image_data_format() == 'channels_first' else -1
+    x = inputs if strides == (1, 1) else layers.ZeroPadding2D(((0, 1), (0, 1)), name='conv_pad_%d' % block_id)(inputs)
+    # Depthwise
+    x = layers.DepthwiseConv2D((3, 3),
+                               padding='same' if strides == (1, 1) else 'valid',
+                               depth_multiplier=depth_multiplier,
+                               strides=strides,
+                               use_bias=False,
+                               name='conv_dw_%d' % block_id)(x)
+    x = layers.BatchNormalization(axis=channel_axis, name='conv_dw_%d_bn' % block_id)(x)
+    x = layers.ReLU(6., name='conv_dw_%d_relu' % block_id)(x)
+    # Separable
+    x = layers.Conv2D(pointwise_filters, (1, 1), padding='same', use_bias=False, strides=(1, 1), name='conv_pw_%d' % block_id)(x)
+    x = layers.BatchNormalization(axis=channel_axis, name='conv_pw_%d_bn' % block_id)(x)
+    return layers.ReLU(6., name='conv_pw_%d_relu' % block_id)(x)
+
+
 def conv_block(inputs, filters, kernel=(3, 3), strides=(1, 1), block_id=0):
     channel_axis = 1 if backend.image_data_format() == 'channels_first' else -1
     x = layers.Conv2D(filters, kernel, padding='same', use_bias=False, strides=strides, name='conv_block_%d' % block_id)(inputs)
@@ -145,6 +163,38 @@ def MobileNetV2(inputs, num_classes, anchor_size):
     return models.Model(inputs, outputs, name='mobilenetv2')
     
 
+
+def MobileNet(inputs, light=True):
+    x = conv_block(inputs=inputs, filters=32, strides=(2, 2), block_id=0)
+    x = depth_wise_separable_convolution(x, pointwise_filters=64, block_id=1)
+
+    x = depth_wise_separable_convolution(
+        x, pointwise_filters=128, block_id=2, strides=(2, 2))
+    x = depth_wise_separable_convolution(x, pointwise_filters=128, block_id=3)
+
+    x = depth_wise_separable_convolution(
+        x, pointwise_filters=256, block_id=4, strides=(2, 2))
+    route0 = depth_wise_separable_convolution(
+        x, pointwise_filters=256, block_id=5)
+
+    x = depth_wise_separable_convolution(
+        route0, pointwise_filters=512, block_id=6, strides=(2, 2))
+    x = depth_wise_separable_convolution(x, pointwise_filters=512, block_id=7)
+    x = depth_wise_separable_convolution(x, pointwise_filters=512, block_id=8)
+    x = depth_wise_separable_convolution(x, pointwise_filters=512, block_id=9)
+    x = depth_wise_separable_convolution(x, pointwise_filters=512, block_id=10)
+    route1 = depth_wise_separable_convolution(
+        x, pointwise_filters=512, block_id=11)
+
+    x = depth_wise_separable_convolution(
+        route1, pointwise_filters=1024, block_id=12, strides=(2, 2))
+    route2 = depth_wise_separable_convolution(
+        x, pointwise_filters=1024, block_id=13)
+    
+    if light:
+        return models.Model(inputs, [route1, route2], name='mobilenet')
+    
+    return models.Model(inputs, [route0, route1, route2], name='mobilenet')
 
 def DarkNet53(x):
     x = conv(x, 32, 3)
@@ -274,6 +324,42 @@ def PANet(backbone_model, num_classes = 1, anchor_size = 3):
     return [conv_sbbox, conv_mbbox, conv_lbbox]
     
 
+def FPN_light(backbone_model, classes=1, anchor_size=6):
+    medium, small = backbone_model.outputs
+
+    route_input = small
+    x = conv_block(inputs=small, filters=256, kernel=(1, 1), strides=(1, 1), block_id=1)
+    x = layers.UpSampling2D()(x)
+
+    route1 = conv_block(inputs=medium, filters=256, kernel=(1, 1), strides=(1, 1), block_id=2)
+    x = layers.Concatenate()([route1, x])
+
+    x = conv_block(inputs=x, filters=256, kernel=(1, 1), strides=(1, 1), block_id=3)
+    x = conv_block(inputs=x, filters=512, kernel=(3, 3), strides=(1, 1), block_id=4)
+    x = conv_block(inputs=x, filters=256, kernel=(1, 1), strides=(1, 1), block_id=5)
+    x = conv_block(inputs=x, filters=512, kernel=(3, 3), strides=(1, 1), block_id=6)
+    x = conv_block(inputs=x, filters=256, kernel=(1, 1), strides=(1, 1), block_id=7)
+
+    route1 = x
+    x = conv_block(inputs=x, filters=512, kernel=(3, 3), strides=(1, 1), block_id=21)
+    conv_mbbox = layers.Conv2D(anchor_size * (classes + 5), 1, strides=1, padding='same', use_bias=True)(x)
+
+    route1 = layers.ZeroPadding2D(((1, 0), (1, 0)))(route1)
+    x = layers.Conv2D(512, 3, strides=2, padding='valid', use_bias=True)(route1)
+    x = layers.Concatenate()([x, route_input])
+
+    x = conv_block(inputs=x, filters=512, kernel=(1, 1), strides=(1, 1), block_id=22)
+    x = conv_block(inputs=x, filters=1024, kernel=(3, 3), strides=(1, 1), block_id=23)
+    x = conv_block(inputs=x, filters=512, kernel=(1, 1), strides=(1, 1), block_id=24)
+    x = conv_block(inputs=x, filters=1024, kernel=(3, 3), strides=(1, 1), block_id=25)
+    x = conv_block(inputs=x, filters=512, kernel=(1, 1), strides=(1, 1), block_id=26)
+
+    x = conv_block(inputs=x, filters=1024, kernel=(3, 3), strides=(1, 1), block_id=27)
+    conv_lbbox = layers.Conv2D(anchor_size * (classes + 5), 1, strides=1, padding='same', use_bias=True)(x)
+
+    return [conv_mbbox, conv_lbbox]
+
+
 def get_boxes(pred, anchors, classes, strides, xyscale):
     # (batch_size, grid_size, grid_size, 3, 5+classes)
     pred = layers.Reshape((pred.shape[1], pred.shape[1], anchors.shape[0], 5 + classes))(pred)
@@ -305,3 +391,10 @@ def yolo_detector(prediction, anchors, classes, strides, xyscale):
     large = get_boxes(prediction[2], anchors[2, :, :], classes, strides[2], xyscale[2])
 
     return [*small, *medium, *large]
+
+def yolo_detector_lite(prediction, anchors, classes, strides, xyscale):
+
+    medium = get_boxes(prediction[0], anchors[0, :, :], classes, strides[0], xyscale[0])
+    large = get_boxes(prediction[1], anchors[1, :, :], classes, strides[1], xyscale[1])
+    
+    return [*medium, *large]

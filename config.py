@@ -16,3 +16,22 @@ cfg = {
   'iou_threshold': 0.48,
   'score_threshold': 0.55,
 }
+
+cfg_lite = {
+  'image_size' : (416, 416, 3),
+  'anchors' : [17, 16, 30, 29, 55, 43, 44, 74, 85, 68, 118, 86, 95, 123, 153, 116, 145, 180, 220, 162, 217, 272, 333, 226],
+  'strides' : [16, 32],
+  'xyscale': [1.1, 1.05],
+  'detector_count' : 2,
+  'anchor_size_perdetector': 6,
+
+  # Training
+  'iou_loss_thresh': 0.5,
+  'batch_size': 8,
+  'num_gpu': 1,  # 2,
+
+  # Inference
+  'max_boxes': 100,
+  'iou_threshold': 0.48,
+  'score_threshold': 0.55,
+}

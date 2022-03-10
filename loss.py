@@ -111,16 +111,23 @@ def yolo_loss(args, classes, iou_loss_thresh, anchors):
     return ciou_loss + conf_loss + prob_loss
 
 
-def yolo_loss_lite(args, classes, iou_loss_thresh, anchors, stride):
-    conv = args[0]
-    label = args[1]
-    true_boxes = args[2]
+def yolo_loss_lite(args, classes, iou_loss_thresh, anchors, strides):
+ 
+    conv_mbbox = args[0]  # (None, 26, 26, 75)
+    conv_lbbox = args[1]  # (None, 13, 13, 75)
 
-    predic = yolo_postulate(conv, anchors[0], stride, classes)
+    label_mbbox = args[2]  # (None, 26, 26, 3, 25)
+    label_lbbox = args[3]  # (None, 13, 13, 3, 25)
+    true_boxes = args[4]  # (None, 100, 4)
 
-    cio_loss, conf_loss, prob_loss = yolo_loss_layer(conv, predic, label, true_boxes, stride, classes, iou_loss_thresh)
-    cio_loss = cio_loss + 3.54
-    conf_loss = conf_loss + 10.3
-    prob_loss = prob_loss + 1
+    pred_mbbox = yolo_postulate(conv_mbbox, anchors[0], strides[0], classes)  # (None, None, None, 3, 25)
+    pred_lbbox = yolo_postulate(conv_lbbox, anchors[1], strides[1], classes)  # (None, None, None, 3, 25)
+ 
+    mbbox_ciou_loss, mbbox_conf_loss, mbbox_prob_loss = yolo_loss_layer(conv_mbbox, pred_mbbox, label_mbbox, true_boxes, 16, classes, iou_loss_thresh)
+    lbbox_ciou_loss, lbbox_conf_loss, lbbox_prob_loss = yolo_loss_layer(conv_lbbox, pred_lbbox, label_lbbox, true_boxes, 32, classes, iou_loss_thresh)
 
-    return conf_loss + cio_loss + prob_loss
+    ciou_loss = (lbbox_ciou_loss + mbbox_ciou_loss) * 2.54
+    conf_loss = (lbbox_conf_loss + mbbox_conf_loss) * 50.3
+    prob_loss = (lbbox_prob_loss + mbbox_prob_loss) * 1
+
+    return conf_loss + ciou_loss + prob_loss
