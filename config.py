@@ -27,11 +27,11 @@ cfg_lite = {
 
   # Training
   'iou_loss_thresh': 0.5,
-  'batch_size': 8,
+  'batch_size': 50,
   'num_gpu': 1,  # 2,
 
   # Inference
   'max_boxes': 100,
   'iou_threshold': 0.48,
-  'score_threshold': 0.55,
+  'score_threshold': 0.6,
 }

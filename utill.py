@@ -6,6 +6,7 @@ import tensorflow as tf
 import pandas as pd
 import operator
 import cv2
+import layer
 
 from tensorflow.keras.utils import Sequence
 from matplotlib import image
@@ -519,6 +520,26 @@ def filtter(boxes, threshold = 0.75):
       
     boxes = boxes.drop(boxes.index[index])
     return boxes
+
+def img_process_tflite(img, shape):
+  img_ori = tf.image.resize(img, (shape[1], shape[2]))
+  img_ori = img_ori / 255
+  img_exp = np.expand_dims(img_ori, axis=0)
+  return img_exp
+
+def tflite_predict(img, config, class_name, interpreter, filtter_threshold=0.7):
+    anchors = np.array(config['anchors']).reshape((2, 6, 2))
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    exp_img = img_process_tflite(img, input_details[0]['shape'])
+    interpreter.set_tensor(input_details[0]['index'], exp_img)
+    interpreter.invoke()
+    outputs = [interpreter.get_tensor(output_details[1]['index']), interpreter.get_tensor(output_details[0]['index'])]
+    outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
+    outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
+    boxes = get_detection_data(outputs, img.shape, class_name)
+    boxes = filtter(boxes, filtter_threshold)
+    return draw_bbox(img, boxes)
 
 
 class Tracker:
