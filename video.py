@@ -9,11 +9,12 @@ import model
 
 
 # mdl = model.YoloV4('assets/class_name.txt', config.cfg, 'assets/weight.h5')
-capture = cv.VideoCapture('/home/hadioz/Videos/test-3.ts')
+capture = cv.VideoCapture('/home/hadioz/Videos/road-test.mp4')
+
 # obj_detect = cv.createBackgroundSubtractorMOG2()
 
 class_name = [line.strip() for line in open('assets/class_name.txt').readlines()]
-interpreter = tf.lite.Interpreter(model_path='assets/litemodel.tflite')
+interpreter = tf.lite.Interpreter(model_path='assets/model-503.tflite')
 interpreter.allocate_tensors()
 
 
