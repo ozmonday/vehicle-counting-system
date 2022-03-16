@@ -266,14 +266,14 @@ def draw_bbox(raw_img, detections, show_text = True):
 
     for _, row in detections.iterrows():
         x1, y1, x2, y2, cls, score, w, h = row.values
-        cv2.rectangle(raw_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), line_width)
+        cv2.rectangle(raw_img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 255), line_width)
         if show_text:
             text = f'{cls} {score:.2f}'
             font = cv2.FONT_HERSHEY_DUPLEX
             font_scale = max(0.3 * scale, 0.3)
             thickness = max(int(1 * scale), 1)
             (text_width, text_height) = cv2.getTextSize(text, font, fontScale=font_scale, thickness=thickness)[0]
-            cv2.rectangle(raw_img, (x1 - line_width//2, y1 - text_height), (x1 + text_width, y1), (255, 0, 0), cv2.FILLED)
+            cv2.rectangle(raw_img, (x1 - line_width//2, y1 - text_height), (x1 + text_width, y1), (0, 0, 255), cv2.FILLED)
             cv2.putText(raw_img, text, (x1, y1), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     return raw_img
         

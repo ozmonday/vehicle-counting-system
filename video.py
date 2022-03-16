@@ -9,7 +9,7 @@ import model
 
 
 # mdl = model.YoloV4('assets/class_name.txt', config.cfg, 'assets/weight.h5')
-capture = cv.VideoCapture('/home/hadioz/Videos/road-test.mp4')
+capture = cv.VideoCapture('/home/hadioz/Videos/test-5.mp4')
 
 # obj_detect = cv.createBackgroundSubtractorMOG2()
 
@@ -22,7 +22,7 @@ while True:
     # capture frame-by-frame from video file
     ret, frame = capture.read() 
     # mask = obj_detect.apply(frame)
-    frame = cv.resize(frame, (960, 540))
+    frame = cv.resize(frame, (1280, 720))
     # mask = cv.resize(mask, (960, 540))
     frame = utill.tflite_predict(frame, config.cfg_lite, class_name, interpreter)
     cv.imshow("frame", frame)
