@@ -539,13 +539,15 @@ def tflite_predict(img, config, class_name, interpreter, filtter_threshold=0.7):
     outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
     boxes = get_detection_data(outputs, img.shape, class_name)
     boxes = filtter(boxes, filtter_threshold)
-    return draw_bbox(img, boxes)
+    return draw_bbox(img, boxes), boxes
 
 
 class Tracker:
-    def __init__(self):
+    def __init__(self, threshold = 0.3):
         self.leak = []
         self.curent_frame = 0;
+        self.threshold = threshold
+
         # self.indexs = []
 
     def check(self, boxes):
@@ -560,7 +562,40 @@ class Tracker:
                     'frame-skip' : 0
                 }
                 self.leak.append(node)
-       # else:
+            return
+
+        for _, row in boxes.iterrows():
+            x1, y1, _, _, cls, score, w, h = row.values
+            match = False
+            for n in self.leak:
+                boxone = np.array([x1, y1, w, h])
+                boxtwo = np.array(n['bbox'])
+                iou = bbox_iou(boxone, boxtwo)
+                print(f'iou : {iou}')
+                if iou >= self.threshold:
+                    n['bbox'] = [x1, y1, w, h]
+                    if score > n['confidene']:
+                        n['class'] = cls
+                        n['confidene'] = score
+                        match = True
+                    break
+            
+            if match == False:
+                node = {
+                    'index': 0, #mengunakan encode jam 
+                    'bbox' : [x1, y1, w, h],
+                    'class': cls,
+                    'confidene' : score,
+                    'frame-skip' : 0
+                }
+                self.leak.append(node)
+        
+        print(len(self.leak))
+
+                
+
+
+
 
     def clear_leak():
         pass
