@@ -33,6 +33,6 @@ cfg_lite = {
 
   # Inference
   'max_boxes': 100,
-  'iou_threshold': 0.48,
-  'score_threshold': 0.6,
+  'iou_threshold': 0.5,
+  'score_threshold': 0.7,
 }

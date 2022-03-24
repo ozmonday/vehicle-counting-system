@@ -13,6 +13,8 @@ from matplotlib import image
 from matplotlib import pyplot as plt
 from matplotlib import patches
 from tensorflow.keras import layers, backend
+from deep_sort.detection import Detection
+from deep_sort.preprocessing import non_max_suppression
 
 
 class DataGenerator(Sequence):
@@ -234,11 +236,11 @@ def draw_image(image, notation):
   plt.show()
 
 
-def plot_bbox(img, detections, show_img=True):
+def plot_bbox(img, dtc, show_img=True):
     """
     Draw bounding boxes on the img.
     :param img: BGR img.
-    :param detections: pandas DataFrame containing detections
+    :param dtc: pandas DataFrame containing dtc
     :param random_color: assign random color for each objects
     :param cmap: object colormap
     :param plot_img: if plot img with bboxes
@@ -249,7 +251,7 @@ def plot_bbox(img, detections, show_img=True):
     ax1.imshow(img, interpolation='nearest')
     ax2.imshow(img, interpolation='nearest')
 
-    for _, row in detections.iterrows():
+    for _, row in dtc.iterrows():
         x1, y1, x2, y2, cls, score, w, h = row.values
         plt.text(round(x1), round(y1), cls, backgroundcolor='r', color='w', fontweight='bold')
         rect = patches.Rectangle((int(x1), int(y1)), int(w), int(h), linewidth=2, edgecolor='r', facecolor='none')
@@ -258,13 +260,13 @@ def plot_bbox(img, detections, show_img=True):
     if show_img:
         plt.show()
 
-def draw_bbox(raw_img, detections, show_text = True):
+def draw_bbox(raw_img, dtc, show_text = True):
 
     raw_img = np.array(raw_img)
     scale = max(raw_img.shape[0:2]) / 416
     line_width = int(1 * scale)
 
-    for _, row in detections.iterrows():
+    for _, row in dtc.iterrows():
         x1, y1, x2, y2, cls, score, w, h = row.values
         cv2.rectangle(raw_img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 255), line_width)
         if show_text:
@@ -508,7 +510,7 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label, out
     # plt.close()
 
 
-def filtter(boxes, threshold = 0.75):
+def filtter(boxes, threshold = 0.6):
     index = []
     for idx in range(len(boxes)):
         box_one = np.array([boxes.iloc[idx,0], boxes.iloc[idx,1], boxes.iloc[idx,6], boxes.iloc[idx,7]])
@@ -527,70 +529,75 @@ def img_process_tflite(img, shape):
   img_exp = np.expand_dims(img_ori, axis=0)
   return img_exp
 
-def tflite_predict(img, config, class_name, interpreter, filtter_threshold=0.7):
+def tflite_predict(img, config, class_name, interpreter, encoder, filtter_threshold=0.7):
     anchors = np.array(config['anchors']).reshape((2, 6, 2))
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     exp_img = img_process_tflite(img, input_details[0]['shape'])
     interpreter.set_tensor(input_details[0]['index'], exp_img)
     interpreter.invoke()
-    outputs = [interpreter.get_tensor(output_details[0]['index']), interpreter.get_tensor(output_details[1]['index'])]
+    outputs = [interpreter.get_tensor(output_details[1]['index']), interpreter.get_tensor(output_details[0]['index'])]
     outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
     outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
     boxes = get_detection_data(outputs, img.shape, class_name)
-    boxes = filtter(boxes, filtter_threshold)
-    return draw_bbox(img, boxes), boxes
+    # boxes = filtter(boxes, filtter_threshold)
+    features = encoder(img, boxes)
+    dtc = []
+    for idx in range(len(boxes)):
+        b = [boxes.iloc[idx,0], boxes.iloc[idx,1], boxes.iloc[idx,6], boxes.iloc[idx,7]]
+        s = boxes.iloc[idx,5]
+        c = boxes.iloc[idx,4]
+        f = features[idx]
+        dtc.append(Detection(b, s, c, f))
+    
+    boxs = np.array([d.tlwh for d in dtc])
+    scores = np.array([d.confidence for d in dtc])
+    classes = np.array([d.class_name for d in dtc])
+    indices = non_max_suppression(boxs, classes, 1.0, scores)
+    dtc = [dtc[i] for i in indices]       
+
+    return dtc
 
 
-class Tracker:
-    def __init__(self, threshold = 0.3):
+class PoinTrack:
+    def __init__(self, max_age = 5):
         self.leak = []
-        self.curent_frame = 0;
-        self.threshold = threshold
-
+        self.max_age = max_age
         # self.indexs = []
 
-    def check(self, boxes):
+    def check(self, id):
         if len(self.leak) == 0:
-            for _, row in boxes.iterrows():
-                x1, y1, _, _, cls, score, w, h = row.values
-                node = {
-                    'index': 0, #mengunakan encode jam 
-                    'bbox' : [x1, y1, w, h],
-                    'class': cls,
-                    'confidene' : score,
-                    'frame-skip' : 0
-                }
-                self.leak.append(node)
+            node = [id, 1]
+            self.leak.append(node)
             return
 
-        for _, row in boxes.iterrows():
-            x1, y1, _, _, cls, score, w, h = row.values
-            match = False
-            for n in self.leak:
-                boxone = np.array([x1, y1, w, h])
-                boxtwo = np.array(n['bbox'])
-                iou = bbox_iou(boxone, boxtwo)
-                print(f'iou : {iou}')
-                if iou >= self.threshold:
-                    n['bbox'] = [x1, y1, w, h]
-                    if score > n['confidene']:
-                        n['class'] = cls
-                        n['confidene'] = score
-                        match = True
-                    break
-            
-            if match == False:
-                node = {
-                    'index': 0, #mengunakan encode jam 
-                    'bbox' : [x1, y1, w, h],
-                    'class': cls,
-                    'confidene' : score,
-                    'frame-skip' : 0
-                }
-                self.leak.append(node)
+        for i in range(len(self.leak)):
+            if self.leak[i][0] == id:
+                node = [id, 1]
+                self.leak[i] = node
+                return
         
-        print(len(self.leak))
+        self.leak.append([id, 1])
+        return
+    
+    def update(self):
+        sum = 0
+        index_del = []
+        for i in range(len(self.leak)):
+            if self.leak[i][1] > self.max_age:
+                index_del.append(i)
+                sum = sum + 1
+            else:
+                self.leak[i][1] = self.leak[i][1] + 1
+        
+
+        for i in index_del:
+            self.leak.pop(i)
+
+        return sum
+
+            
+
 
                 
 

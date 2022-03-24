@@ -10,3 +10,5 @@ assets/yolo-car-lite-503.54-60.72.tflite
 assets/yolo-v4-car-lite-503.113-115.69.tflite
 assets/yolo-v4-car-lite-503.130-125.92.tflite
 model_data/mars-small128.pb
+assets/yolo-car-lite-503.100-72.38.tflite
+testing
