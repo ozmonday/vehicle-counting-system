@@ -21,6 +21,13 @@ RED = (0, 0, 255)
 GREEN = (0, 255, 0)
 # mdl = model.YoloV4('assets/class_name.txt', config.cfg, 'assets/weight.h5')
 capture = cv.VideoCapture('/home/hadioz/Videos/test-day.mp4')
+frame_width = int(capture.get(3))
+frame_height = int(capture.get(4))
+print(f'frame_height {frame_height}')
+print(f'frame_width {frame_width}')
+out = cv.VideoWriter('outpy.avi',cv.VideoWriter_fourcc('M','J','P','G'), 10, (960, 540))
+
+
 ctx = np.zeros((540, 960), dtype=np.uint8)
 cv.polylines(ctx, np.array([p2]), True, (255, 255, 255), 1)
 cnts_zone, _ = cv.findContours(ctx, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
@@ -34,12 +41,18 @@ encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
 matric = NearestNeighborDistanceMetric("cosine", 0.4, None)
 tracker = Tracker(matric)
-summary = 0
+heavy_vehicle = 0
+light_vehicle = 0
+motor_vehicle = 0
+unknow_vehicle = 0
 pt = utill.PoinTrack()
 
 while True:
     # capture frame-by-frame from video file
     ret, frame = capture.read() 
+    if ret == False:
+        break
+    
     frame = cv.resize(frame, (960, 540))
     dtc = utill.tflite_predict(frame, config.cfg_lite, class_name, interpreter, encoder)
     
@@ -48,9 +61,22 @@ while True:
     
     cmap = plt.get_cmap('tab20b')
     colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
-    
-    summary += pt.update()
-    cv.putText(frame, str(summary),(50, 50), cv.FONT_HERSHEY_DUPLEX, 1, (255,255,255),2)
+    cout = pt.update()
+    for c in cout:
+        if c == 'multi-wheeled_vehicle':
+            heavy_vehicle += 1
+        elif c == 'four-wheeled_vehicle':
+            light_vehicle += 1
+        elif c == 'two-wheeled_vehicle':
+            motor_vehicle += 1
+        else:
+            unknow_vehicle += 1
+
+
+    cv.putText(frame, 'heavy_vehicle : ' + str(heavy_vehicle),(50, 50), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
+    cv.putText(frame, 'light_vehicle : ' + str(light_vehicle),(50, 80), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
+    cv.putText(frame, 'motor_vehicle : ' + str(motor_vehicle),(50, 110), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
+    cv.putText(frame, 'unknow_vehicle : ' + str(unknow_vehicle),(50, 140), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
     cv.polylines(frame, np.array([p2]), True, GREEN, 1)
     for track in tracker.tracks:
         if not track.is_confirmed() or track.time_since_update > 1:
@@ -62,7 +88,7 @@ while True:
         
         res = cv.pointPolygonTest(cnts_zone[0], (center_x,center_y), True)
         if res > 0:
-            pt.check(track.track_id)
+            pt.check(track.track_id, track.get_class())
 
         cn = track.get_class()
         # draw bbox on screen
@@ -78,10 +104,13 @@ while True:
         cv.putText(frame, text,(int(bbox[0] + 5) , int(bbox[1] - 5)), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
     
     result = np.asarray(frame)
+    out.write(result)
     cv.imshow("frame", result)
     
     if cv.waitKey(27) & 0xFF == ord('q'):
         break
+    
 # When everything done, release the capture
 capture.release()
+
 cv.destroyAllWindows()

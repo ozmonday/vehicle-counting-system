@@ -565,34 +565,34 @@ class PoinTrack:
         self.max_age = max_age
         # self.indexs = []
 
-    def check(self, id):
+    def check(self, id, classes):
         if len(self.leak) == 0:
-            node = [id, 1]
+            node = [id, classes, 1]
             self.leak.append(node)
             return
 
         for i in range(len(self.leak)):
             if self.leak[i][0] == id:
-                node = [id, 1]
+                node = [id, self.leak[i][1], 1]
                 self.leak[i] = node
                 return
         
-        self.leak.append([id, 1])
+        self.leak.append([id, classes, 1])
         return
     
     def update(self):
-        sum = 0
+        sum = []
         index_del = []
         for i in range(len(self.leak)):
-            if self.leak[i][1] > self.max_age:
-                index_del.append(i)
-                sum = sum + 1
+            if self.leak[i][2] > self.max_age:
+                index_del.append(self.leak[i])
+                sum.append(self.leak[i][1])
             else:
-                self.leak[i][1] = self.leak[i][1] + 1
+                self.leak[i][2] = self.leak[i][2] + 1
         
 
         for i in index_del:
-            self.leak.pop(i)
+            self.leak.remove(i)
 
         return sum
 
