@@ -14,26 +14,28 @@ from deep_sort.detection import Detection
 from matplotlib import pyplot as plt
 
 
-p = list(dict(counting_line.test_day['area-one']).values())
-p2 = list(dict(counting_line.test_day['area-two']).values())
-
-RED = (0, 0, 255)
-GREEN = (0, 255, 0)
 # mdl = model.YoloV4('assets/class_name.txt', config.cfg, 'assets/weight.h5')
-capture = cv.VideoCapture('/home/hadioz/Videos/test-day.mp4')
+capture = cv.VideoCapture('/home/hadioz/Videos/video_test/test-day-1.mp4')
 frame_width = int(capture.get(3))
 frame_height = int(capture.get(4))
 print(f'frame_height {frame_height}')
 print(f'frame_width {frame_width}')
-out = cv.VideoWriter('outpy.avi',cv.VideoWriter_fourcc('M','J','P','G'), 10, (960, 540))
+out = cv.VideoWriter('road-test.avi',cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
 
 
-ctx = np.zeros((540, 960), dtype=np.uint8)
-cv.polylines(ctx, np.array([p2]), True, (255, 255, 255), 1)
+
+p = list(dict(counting_line.test_day_1['area-one']).values())
+p = [ (round(x*frame_width), round(y*frame_height)) for x, y in p]
+print(p)
+RED = (0, 0, 255)
+GREEN = (0, 255, 0)
+
+ctx = np.zeros((frame_height, frame_width), dtype=np.uint8)
+cv.polylines(ctx, np.array([p]), True, (255, 255, 255), 1)
 cnts_zone, _ = cv.findContours(ctx, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
 class_name = [line.strip() for line in open('assets/new_class_name.txt').readlines()]
-interpreter = tf.lite.Interpreter(model_path='assets/yolo-car-lite-503.100-72.38.tflite')
+interpreter = tf.lite.Interpreter(model_path='assets/yolo-car-lite-503-final.tflite')
 interpreter.allocate_tensors()
 
 model_filename = 'model_data/mars-small128.pb'
@@ -53,7 +55,7 @@ while True:
     if ret == False:
         break
     
-    frame = cv.resize(frame, (960, 540))
+    #frame = cv.resize(frame, (960, 540))
     dtc = utill.tflite_predict(frame, config.cfg_lite, class_name, interpreter, encoder)
     
     tracker.predict()
@@ -77,7 +79,7 @@ while True:
     cv.putText(frame, 'light_vehicle : ' + str(light_vehicle),(50, 80), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
     cv.putText(frame, 'motor_vehicle : ' + str(motor_vehicle),(50, 110), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
     cv.putText(frame, 'unknow_vehicle : ' + str(unknow_vehicle),(50, 140), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
-    cv.polylines(frame, np.array([p2]), True, GREEN, 1)
+    cv.polylines(frame, np.array([p]), True, GREEN, 1)
     for track in tracker.tracks:
         if not track.is_confirmed() or track.time_since_update > 1:
             continue 

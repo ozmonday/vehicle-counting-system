@@ -536,7 +536,7 @@ def tflite_predict(img, config, class_name, interpreter, encoder, filtter_thresh
     exp_img = img_process_tflite(img, input_details[0]['shape'])
     interpreter.set_tensor(input_details[0]['index'], exp_img)
     interpreter.invoke()
-    outputs = [interpreter.get_tensor(output_details[1]['index']), interpreter.get_tensor(output_details[0]['index'])]
+    outputs = [interpreter.get_tensor(output_details[0]['index']), interpreter.get_tensor(output_details[1]['index'])]
     outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
     outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
     boxes = get_detection_data(outputs, img.shape, class_name)

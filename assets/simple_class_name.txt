@@ -1,0 +1,7 @@
+articulated_truck
+bus
+car
+motorcycle
+pickup_truck
+single_unit_truck
+work_van
