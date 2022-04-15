@@ -540,7 +540,7 @@ def tflite_predict(img, config, class_name, interpreter, encoder, filtter_thresh
     outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
     outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
     boxes = get_detection_data(outputs, img.shape, class_name)
-    # boxes = filtter(boxes, filtter_threshold)
+    boxes = filtter(boxes, filtter_threshold)
     features = encoder(img, boxes)
     dtc = []
     for idx in range(len(boxes)):
@@ -559,51 +559,35 @@ def tflite_predict(img, config, class_name, interpreter, encoder, filtter_thresh
     return dtc
 
 
-class PoinTrack:
-    def __init__(self, max_age = 5):
-        self.leak = []
-        self.max_age = max_age
-        # self.indexs = []
+def tfl_predict(img, config, class_name, interpreter, filtter_threshold=0.5):
+    anchors = np.array(config['anchors']).reshape((2, 6, 2))
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    exp_img = img_process_tflite(img, input_details[0]['shape'])
+    interpreter.set_tensor(input_details[0]['index'], exp_img)
+    interpreter.invoke()
+    outputs = [interpreter.get_tensor(output_details[0]['index']), interpreter.get_tensor(output_details[1]['index'])]
+    outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
+    outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
+    boxes = get_detection_data(outputs, img.shape, class_name)
+    boxes = filtter(boxes, filtter_threshold)
+    return boxes
 
-    def check(self, id, classes):
-        if len(self.leak) == 0:
-            node = [id, classes, 1]
-            self.leak.append(node)
-            return
+def draw_bbox_sort(raw_img, dtc, show_text = True):
 
-        for i in range(len(self.leak)):
-            if self.leak[i][0] == id:
-                node = [id, self.leak[i][1], 1]
-                self.leak[i] = node
-                return
-        
-        self.leak.append([id, classes, 1])
-        return
-    
-    def update(self):
-        sum = []
-        index_del = []
-        for i in range(len(self.leak)):
-            if self.leak[i][2] > self.max_age:
-                index_del.append(self.leak[i])
-                sum.append(self.leak[i][1])
-            else:
-                self.leak[i][2] = self.leak[i][2] + 1
-        
+    raw_img = np.array(raw_img)
+    scale = max(raw_img.shape[0:2]) / 416
+    line_width = int(1 * scale)
 
-        for i in index_del:
-            self.leak.remove(i)
-
-        return sum
-
-            
-
-
-                
-
-
-
-
-    def clear_leak():
-        pass
-
+    for idx in range(dtc.shape[0]):
+        obj = dtc[idx]
+        cv2.rectangle(raw_img, (int(obj[0]), int(obj[1])), (int(obj[2]), int(obj[3])), (0, 0, 255), line_width)
+        if show_text:
+            text = f'{obj[4]:.2f}'
+            font = cv2.FONT_HERSHEY_DUPLEX
+            font_scale = max(0.3 * scale, 0.3)
+            thickness = max(int(1 * scale), 1)
+            (text_width, text_height) = cv2.getTextSize(text, font, fontScale=font_scale, thickness=thickness)[0]
+            cv2.rectangle(raw_img, (int(obj[0]) - line_width//2, int(obj[1]) - text_height), (int(obj[0]) + text_width, int(obj[1])), (0, 0, 255), cv2.FILLED)
+            cv2.putText(raw_img, text, (int(obj[0]), int(obj[1])), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
+    return raw_img
