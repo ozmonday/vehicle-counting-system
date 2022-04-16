@@ -87,7 +87,7 @@ def convert_x_to_bbox(x,score=None):
   if(score==None):
     return np.array([x[0]-w/2.,x[1]-h/2.,x[0]+w/2.,x[1]+h/2.]).reshape((1,4))
   else:
-    return np.array([x[0]-w/2.,x[1]-h/2.,x[0]+w/2.,x[1]+h/2.,score]).reshape((1,5))
+    return np.array([x[0]-w/2.,x[1]-h/2.,x[0]+w/2.,x[1]+h/2.,score], dtype=float).reshape((1,5))
 
 
 class KalmanBoxTracker(object):
@@ -118,6 +118,8 @@ class KalmanBoxTracker(object):
     self.hits = 0
     self.hit_streak = 0
     self.age = 0
+    self.score =  bbox[4]
+    self.classes = bbox[5]
 
   def update(self,bbox):
     """
@@ -127,6 +129,9 @@ class KalmanBoxTracker(object):
     self.history = []
     self.hits += 1
     self.hit_streak += 1
+    if self.score < bbox[4]:
+      self.score = bbox[4]
+      self.classes = bbox[5]
     self.kf.update(convert_bbox_to_z(bbox))
 
   def predict(self):
@@ -147,7 +152,7 @@ class KalmanBoxTracker(object):
     """
     Returns the current bounding box estimate.
     """
-    return convert_x_to_bbox(self.kf.x)
+    return convert_x_to_bbox(self.kf.x, self.classes)
 
 
 def associate_detections_to_trackers(detections,trackers,iou_threshold = 0.3):
@@ -206,23 +211,23 @@ class Sort(object):
     self.trackers = []
     self.frame_count = 0
 
-  def update(self, dets=np.empty((0, 5))):
+  def update(self, dets=np.empty((0, 6))):
     """
     Params:
-      dets - a numpy array of detections in the format [[x1,y1,x2,y2,score],[x1,y1,x2,y2,score],...]
-    Requires: this method must be called once for each frame even with empty detections (use np.empty((0, 5)) for frames without detections).
-    Returns the a similar array, where the last column is the object ID.
+      dets - a numpy array of detections in the format [[x1,y1,x2,y2,score,class],[x1,y1,x2,y2,score, class],...]
+    Requires: this method must be called once for each frame even with empty detections (use np.empty((0, 6)) for frames without detections).
+    Returns the a similar array, where the last column is the object CLASS and ID.
 
     NOTE: The number of objects returned may differ from the number of detections provided.
     """
     self.frame_count += 1
     # get predicted locations from existing trackers.
-    trks = np.zeros((len(self.trackers), 5))
+    trks = np.zeros((len(self.trackers), 6))
     to_del = []
     ret = []
     for t, trk in enumerate(trks):
       pos = self.trackers[t].predict()[0]
-      trk[:] = [pos[0], pos[1], pos[2], pos[3], 0]
+      trk[:] = [pos[0], pos[1], pos[2], pos[3], self.trackers[t].score, self.trackers[t].classes]
       if np.any(np.isnan(pos)):
         to_del.append(t)
     trks = np.ma.compress_rows(np.ma.masked_invalid(trks))
