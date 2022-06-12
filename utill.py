@@ -13,8 +13,6 @@ from matplotlib import image
 from matplotlib import pyplot as plt
 from matplotlib import patches
 from tensorflow.keras import layers, backend
-from deep_sort.detection import Detection
-from deep_sort.preprocessing import non_max_suppression
 
 
 class DataGenerator(Sequence):
@@ -529,35 +527,6 @@ def img_process_tflite(img, shape):
   img_exp = np.expand_dims(img_ori, axis=0)
   return img_exp
 
-def tflite_predict(img, config, class_name, interpreter, encoder, filtter_threshold=0.7):
-    anchors = np.array(config['anchors']).reshape((2, 6, 2))
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-    exp_img = img_process_tflite(img, input_details[0]['shape'])
-    interpreter.set_tensor(input_details[0]['index'], exp_img)
-    interpreter.invoke()
-    outputs = [interpreter.get_tensor(output_details[0]['index']), interpreter.get_tensor(output_details[1]['index'])]
-    outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
-    outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
-    boxes = get_detection_data(outputs, img.shape, class_name)
-    boxes = filtter(boxes, filtter_threshold)
-    features = encoder(img, boxes)
-    dtc = []
-    for idx in range(len(boxes)):
-        b = [boxes.iloc[idx,0], boxes.iloc[idx,1], boxes.iloc[idx,6], boxes.iloc[idx,7]]
-        s = boxes.iloc[idx,5]
-        c = boxes.iloc[idx,4]
-        f = features[idx]
-        dtc.append(Detection(b, s, c, f))
-    
-    boxs = np.array([d.tlwh for d in dtc])
-    scores = np.array([d.confidence for d in dtc])
-    classes = np.array([d.class_name for d in dtc])
-    indices = non_max_suppression(boxs, classes, 1.0, scores)
-    dtc = [dtc[i] for i in indices]       
-
-    return dtc
-
 
 def tfl_predict(img, config, class_name, interpreter, filtter_threshold=0.5):
     anchors = np.array(config['anchors']).reshape((2, 6, 2))
@@ -590,25 +559,24 @@ def draw_bbox_sort(raw_img, obj, class_name, color):
     return raw_img
 
 
-class PoinTrack:
+class Counter:
     def __init__(self, max_age = 5):
         self.leak = []
         self.max_age = max_age
-        # self.indexs = []
 
     def check(self, id, classes):
         if len(self.leak) == 0:
             node = [id, classes, 1]
             self.leak.append(node)
+            #return
+        else:
+            for i in range(len(self.leak)):
+                if self.leak[i][0] == id:
+                    node = [id, classes, 1]
+                    self.leak[i] = node
+                    return
+            self.leak.append([id, classes, 1])
             return
-
-        for i in range(len(self.leak)):
-            if self.leak[i][0] == id:
-                node = [id, classes, 1]
-                self.leak[i] = node
-                return
-        self.leak.append([id, classes, 1])
-        return
     
     def update(self):
         sum = []
