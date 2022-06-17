@@ -6,13 +6,13 @@ import tensorflow as tf
 import pandas as pd
 import operator
 import cv2
-import layer
+import counting_car.layer as layer
 
-from tensorflow.keras.utils import Sequence
+from keras.utils import Sequence
 from matplotlib import image
 from matplotlib import pyplot as plt
 from matplotlib import patches
-from tensorflow.keras import layers, backend
+from keras import layers, backend
 
 
 class DataGenerator(Sequence):

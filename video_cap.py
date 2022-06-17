@@ -2,9 +2,9 @@ import cv2 as cv
 import numpy as np
 import virtual_zone
 import tensorflow as tf
-import config
-import utill
-import sort
+from counting_car import config
+from counting_car import utill
+from counting_car import sort
 
 from matplotlib import pyplot as plt
 
