@@ -12,7 +12,7 @@ from glob import glob
 import json
 import matplotlib.pyplot as plt
 
-from tensorflow.keras import layers, models, optimizers
+from keras import layers, models, optimizers
 from layer import CSPDarkNet53, PANet, yolo_detector
 
 
@@ -60,7 +60,7 @@ class YoloV4(object):
         self.inferance_model = models.Model(input_layer, nms)
 
         self.training_model.compile(optimizer=optimizers.Adam(
-            learning_rate=1e-4), loss=lambda y_true, y_pred: y_pred)
+            learning_rate=1e-3), loss=lambda y_true, y_pred: y_pred)
     
     def preprocessing_image(self, img):
         img = img /255
