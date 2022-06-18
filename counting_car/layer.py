@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras import layers, backend, initializers, models
+from tensorflow.keras import layers, backend, initializers, models
 
 
 def conv(x, filters, kernel_size, downsampling=False, activation='leaky', batch_norm=True):

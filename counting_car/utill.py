@@ -9,14 +9,13 @@ import operator
 import cv2
 import layer
 
-from keras.utils import Sequence
 from matplotlib import image
 from matplotlib import pyplot as plt
 from matplotlib import patches
-from keras import layers, backend
+from tensorflow.keras import layers, backend, utils
 
 
-class DataGenerator(Sequence):
+class DataGenerator(utils.Sequence):
     def __init__(self, label_anotation, image_path, class_name_path, anchors, target_image_shape=(416, 416, 3),
                  batch_size=64, max_boxes=100, shuffle=True, num_stage=3, bbox_per_grid=3, debug=False):
 
