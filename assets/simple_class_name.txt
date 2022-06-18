@@ -1,4 +1,3 @@
-background
 articulated_truck
 bus
 car
