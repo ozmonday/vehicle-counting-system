@@ -5,3 +5,4 @@ motorcycle
 pickup_truck
 single_unit_truck
 work_van
+background
