@@ -1,3 +1,4 @@
+from distutils.log import debug
 import numbers
 import os
 import platform
@@ -17,7 +18,7 @@ from keras import layers, backend
 
 class DataGenerator(Sequence):
     def __init__(self, label_anotation, image_path, class_name_path, anchors, target_image_shape=(416, 416, 3),
-                 batch_size=64, max_boxes=100, shuffle=True, num_stage=3, bbox_per_grid=3):
+                 batch_size=64, max_boxes=100, shuffle=True, num_stage=3, bbox_per_grid=3, debug=False):
 
         self.label_anotation = label_anotation
         self.image_path = image_path
@@ -27,6 +28,7 @@ class DataGenerator(Sequence):
         self.classes = [line.strip() for line in open(class_name_path).readlines()]
         self.max_boxes = max_boxes
         self.shuffle = shuffle
+        self.debug = debug
         self.batch_size = batch_size
         self.target_image_shape = target_image_shape
         self.indexes = np.arange(len(self.label_anotation))
@@ -61,7 +63,7 @@ class DataGenerator(Sequence):
             y_bbox[i] = boxes
 
         y_tensor, y_true_boxes_xywh = pre_processing_true_bbox(y_bbox, self.target_image_shape[:2], self.anchors,
-                                                             len(self.classes), self.num_stage, self.bboxs_per_grid)
+                                                             len(self.classes), self.num_stage, self.bboxs_per_grid, debug=self.debug)
 
         return x, y_tensor, y_true_boxes_xywh
 
@@ -91,7 +93,7 @@ def get_data(data, image_path, class_name, target_image_shape, max_boxes=100):
     return img, boxes_data
 
 
-def pre_processing_true_bbox(true_boxes, image_size, anchors, num_classes, num_stage, bbox_per_grid, debug=False):
+def pre_processing_true_bbox(true_boxes, image_size, anchors, num_classes, num_stage, bbox_per_grid, debug):
     anchor_mask = np.arange(0, num_stage*bbox_per_grid, dtype=int)
     anchor_mask = -np.sort(-anchor_mask) # comment this if its worng
     anchor_mask = anchor_mask.reshape((num_stage, bbox_per_grid))
@@ -108,8 +110,8 @@ def pre_processing_true_bbox(true_boxes, image_size, anchors, num_classes, num_s
 
     bs = true_boxes.shape[0]
     grid_size = [image_size // [8, 16, 32][-(s+1)] for s in range(num_stage)]
-
-    Y_true = [np.zeros((bs, grid_size[s][0], grid_size[s][1], bbox_per_grid, 5 + num_classes), dtype='float32') for s in range(num_stage)]
+    
+    Y_true = [np.zeros((bs, grid_size[s][0], grid_size[s][1], bbox_per_grid, 5 + num_classes ), dtype='float32') for s in range(num_stage)]
     Y_true_bbox_xywh = np.concatenate((true_boxes_xy, true_boxes_wh), axis=-1)
 
     anchors = np.expand_dims(anchors, 0)
@@ -155,8 +157,9 @@ def pre_processing_true_bbox(true_boxes, image_size, anchors, num_classes, num_s
 
                     Y_true[stage][batch_index, grid_row, grid_col, anchor_idx, 5 + class_idx] = 1
                     
-                    if debug == True:
+                    if debug is True:
                         print('there is an object on this position : stage [{}] : [{}][{}][{}][{}]'.format(stage, batch_index, grid_row, grid_col, anchor_idx))
+    
     return reversed(Y_true), Y_true_bbox_xywh
 
 
