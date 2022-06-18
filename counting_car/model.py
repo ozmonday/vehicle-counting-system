@@ -1,18 +1,16 @@
 import os
-from matplotlib import pyplot
 import numpy as np
-from six import iteritems
-
-from tqdm import tqdm
 import cv2
 import loss
 import utill
 import tensorflow as tf
-from glob import glob
 import json
-import matplotlib.pyplot as plt
 
-from keras import layers, models, optimizers
+from glob import glob
+from matplotlib import pyplot as plt
+from six import iteritems
+from tqdm import tqdm
+from tensorflow.keras import layers, models, optimizers
 from layer import CSPDarkNet53, PANet, yolo_detector
 
 
