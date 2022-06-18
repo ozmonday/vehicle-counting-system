@@ -6,7 +6,7 @@ import tensorflow as tf
 import pandas as pd
 import operator
 import cv2
-import counting_car.layer as layer
+import layer
 
 from keras.utils import Sequence
 from matplotlib import image
@@ -91,7 +91,7 @@ def get_data(data, image_path, class_name, target_image_shape, max_boxes=100):
     return img, boxes_data
 
 
-def pre_processing_true_bbox(true_boxes, image_size, anchors, num_classes, num_stage, bbox_per_grid):
+def pre_processing_true_bbox(true_boxes, image_size, anchors, num_classes, num_stage, bbox_per_grid, debug=False):
     anchor_mask = np.arange(0, num_stage*bbox_per_grid, dtype=int)
     anchor_mask = -np.sort(-anchor_mask) # comment this if its worng
     anchor_mask = anchor_mask.reshape((num_stage, bbox_per_grid))
@@ -154,7 +154,9 @@ def pre_processing_true_bbox(true_boxes, image_size, anchors, num_classes, num_s
                     Y_true[stage][batch_index, grid_row, grid_col, anchor_idx, 4] = 1
 
                     Y_true[stage][batch_index, grid_row, grid_col, anchor_idx, 5 + class_idx] = 1
-
+                    
+                    if debug == True:
+                        print('there is an object on this position : stage [{}] : [{}][{}][{}][{}]'.format(stage, batch_index, grid_row, grid_col, anchor_idx))
     return reversed(Y_true), Y_true_bbox_xywh
 
 
