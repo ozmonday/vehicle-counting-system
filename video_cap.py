@@ -1,6 +1,8 @@
 import cv2 as cv
 import numpy as np
 import virtual_zone
+import sys
+import json
 import tensorflow as tf
 from counting_car import config
 from counting_car import utill
@@ -8,12 +10,15 @@ from counting_car import sort
 
 from matplotlib import pyplot as plt
 
-capture = cv.VideoCapture('/home/hadioz/Videos/video_test/test-night-5.mp4')
+capture = cv.VideoCapture(sys.argv[1])
 frame_width = int(capture.get(3))
 frame_height = int(capture.get(4))
-out = cv.VideoWriter('road-test-5.avi',cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
+out = cv.VideoWriter('output.avi',cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
 
-RoI = list(dict(virtual_zone.test_night_5['area-one']).values())
+with open(sys.argv[2]) as file:
+  data = json.load(file)
+
+RoI = [(data['area'][idx], data['area'][idx+1]) for idx in range(0, len(data['area']), 2)]
 RoI = [ (round(x*frame_width), round(y*frame_height)) for x, y in RoI]
 contex = np.zeros((frame_height, frame_width), dtype=np.uint8)
 cv.polylines(contex, np.array([RoI]), True, (255, 255, 255), 1)
@@ -21,15 +26,19 @@ v_zone, _ = cv.findContours(contex, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
 tracker = sort.Sort(max_age=16, min_hits=1, iou_threshold=0.3)
 
-class_name = [line.strip() for line in open('assets/new_class_name.txt').readlines()]
-interpreter = tf.lite.Interpreter(model_path='assets/yolo-car-lite-503-final.tflite')
+class_name = [line.strip() for line in open('config/class_name.txt').readlines()]
+interpreter = tf.lite.Interpreter(model_path='config/model.tflite')
 interpreter.allocate_tensors()
 
-heavy_vehicle = 0
-light_vehicle = 0
-motor_vehicle = 0
-unknow_vehicle = 0
-pt = utill.Counter()
+
+temp_data = {
+    'heavy_vehicle' : 0,
+    'light_vehicle' : 0,
+    'motor_vehicle' : 0,
+    'unknow_vehicle' : 0
+}
+
+counter = utill.Counter()
 
 G = (0, 255, 0)
 R = (0, 0, 255)
@@ -49,21 +58,21 @@ while True:
     cmap = plt.get_cmap('tab20b')
     colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
     
-    cout = pt.update()
+    cout = counter.update()
     for c in cout:
-        if c == 'multi-wheeled_vehicle':
-            heavy_vehicle += 1
-        elif c == 'four-wheeled_vehicle':
-            light_vehicle += 1
-        elif c == 'two-wheeled_vehicle':
-            motor_vehicle += 1
+        if c in ['articulated_truck', 'bus', 'single_unit_truck']:
+            temp_data['heavy_vehicle'] += 1
+        elif c in ['car', 'pickup_truck', 'work_van']:
+            temp_data['light_vehicle'] += 1
+        elif c in ['motorcycle']:
+            temp_data['motor_vehicle'] += 1
         else:
-            unknow_vehicle += 1
+            temp_data['unknow_vehicle'] += 1
 
-    cv.putText(frame, 'heavy_vehicle : ' + str(heavy_vehicle),(50, 50), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
-    cv.putText(frame, 'light_vehicle : ' + str(light_vehicle),(50, 80), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
-    cv.putText(frame, 'motor_vehicle : ' + str(motor_vehicle),(50, 110), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
-    cv.putText(frame, 'unknow_vehicle : ' + str(unknow_vehicle),(50, 140), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
+    cv.putText(frame, 'heavy_vehicle : ' + str(temp_data['heavy_vehicle']),(50, 50), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
+    cv.putText(frame, 'light_vehicle : ' + str(temp_data['light_vehicle']),(50, 80), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
+    cv.putText(frame, 'motor_vehicle : ' + str(temp_data['motor_vehicle']),(50, 110), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
+    cv.putText(frame, 'unknow_vehicle : ' + str(temp_data['unknow_vehicle']),(50, 140), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
 
     fill = []
     for i in range(track.shape[0]):
@@ -73,7 +82,7 @@ while True:
         res = cv.pointPolygonTest(v_zone[0], center, True)
         res = True if res >= 0 else False
         if res:
-            pt.check(track[i][5], class_name[int(track[i][4])])
+            counter.check(track[i][5], class_name[int(track[i][4])])
         
         fill.append(res)
         frame = utill.draw_bbox_sort(frame, track[i], class_name, color)
@@ -84,7 +93,12 @@ while True:
         cv.polylines(frame, np.array([RoI]), True, G, 2)
 
     out.write(frame)
+    frame = cv.resize(frame, (900, 576), interpolation=cv.INTER_NEAREST)
     cv.imshow("frame", frame)
     
     if cv.waitKey(27) & 0xFF == ord('q'):
         break
+
+
+with open('./output.txt', 'w') as file:
+    json.dump(temp_data, file)

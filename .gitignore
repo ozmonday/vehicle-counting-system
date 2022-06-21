@@ -23,3 +23,5 @@ road-test-4.avi
 road-test-5.avi
 testing
 env
+config/model.tflite
+config/class_name.txt
