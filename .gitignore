@@ -24,4 +24,5 @@ road-test-5.avi
 testing
 env
 config/model.tflite
-config/class_name.txt
+semple/semple_video.mp4
+semple/semple_zone.txt
