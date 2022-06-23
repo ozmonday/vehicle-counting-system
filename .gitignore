@@ -1,19 +1,9 @@
 assets/dataset
 assets/gt_train
 assets/predict
-assets/weight.h5
+assets/*.h5
 assets/test_map
-assets/model.tflite
-assets/litemodel.tflite
-assets/model-503.tflite
-assets/yolo-car-lite-503.54-60.72.tflite
-assets/yolo-v4-car-lite-503.113-115.69.tflite
-assets/yolo-v4-car-lite-503.130-125.92.tflite
-assets/yolo-car-lite-503.100-72.38.tflite
-assets/yolo-car-lite-503-final.tflite
-assets/yolo-car-lite-503.133-87.40.h5
-assets/yolo-car-lite-beta-2.tflite
-assets/yolo-car-lite-beta.tflite
+assets/*.tflite
 
 __pycache__
 road-test.avi
@@ -23,3 +13,7 @@ road-test-4.avi
 road-test-5.avi
 testing
 env
+config/*.tflite
+
+semple/semple_video.mp4
+semple/semple_zone.txt

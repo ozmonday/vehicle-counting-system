@@ -1,17 +1,16 @@
 import os
 import numpy as np
 import cv2
-import loss
-import utill
 import tensorflow as tf
 import json
 
+from counting_car import loss, utill
 from glob import glob
 from matplotlib import pyplot as plt
 from six import iteritems
 from tqdm import tqdm
 from tensorflow.keras import layers, models, optimizers
-from layer import CSPDarkNet53, PANet, yolo_detector
+from counting_car.layer import CSPDarkNet53, PANet, yolo_detector
 
 
 class YoloV4(object):
@@ -88,7 +87,7 @@ class YoloV4(object):
         self.training_model.fit(data_train, steps_per_epoch=len(
             data_train), validation_data=data_validation, epochs=epochs, initial_epoch=initial_epoch, callbacks=callback)
 
-    def build_litemodel(self, model_path):
+    def build_litemodel(self, model_path: str):
         converter = tf.lite.TFLiteConverter.from_keras_model(self.yolo_model)
         light_model = converter.convert()
         with open(model_path, 'wb') as f:

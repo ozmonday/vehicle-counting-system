@@ -7,7 +7,7 @@ import tensorflow as tf
 import pandas as pd
 import operator
 import cv2
-import layer
+from counting_car import layer
 
 from matplotlib import image
 from matplotlib import pyplot as plt
@@ -533,14 +533,19 @@ def img_process_tflite(img, shape):
 
 
 def tfl_predict(img, config, class_name, interpreter, filtter_threshold=0.5):
-    anchors = np.array(config['anchors']).reshape((2, 6, 2))
+    anchors = np.array(config['anchors']).reshape((config['detector_count'], config['anchor_size_perdetector'], 2))
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     exp_img = img_process_tflite(img, input_details[0]['shape'])
     interpreter.set_tensor(input_details[0]['index'], exp_img)
     interpreter.invoke()
-    outputs = [interpreter.get_tensor(output_details[0]['index']), interpreter.get_tensor(output_details[1]['index'])]
-    outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
+    index = [ output_details[i]['index'] for i in range(len(output_details))]
+    index.sort()
+    outputs = [interpreter.get_tensor(i) for i in index]
+    if len(outputs) > 2:
+        outputs = layer.yolo_detector(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
+    else:
+        outputs = layer.yolo_detector_lite(outputs, anchors, len(class_name) , config['strides'], config['xyscale'])
     outputs = nms(outputs, config['image_size'], len(class_name), config['iou_threshold'], config['score_threshold'])
     boxes = get_detection_data(outputs, img.shape, class_name)
     boxes = filtter(boxes, filtter_threshold)
