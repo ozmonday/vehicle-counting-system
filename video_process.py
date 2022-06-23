@@ -4,6 +4,8 @@ import virtual_zone
 import sys
 import json
 import tensorflow as tf
+
+from tqdm import tqdm
 from counting_car import config
 from counting_car import utill
 from counting_car import sort
@@ -11,6 +13,10 @@ from counting_car import sort
 from matplotlib import pyplot as plt
 
 capture = cv.VideoCapture(sys.argv[1])
+
+total = int(capture.get(cv.CAP_PROP_FRAME_COUNT))
+print('total frame : {}'.format(total))		
+
 frame_width = int(capture.get(3))
 frame_height = int(capture.get(4))
 out = cv.VideoWriter('output.avi',cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
@@ -26,8 +32,8 @@ v_zone, _ = cv.findContours(contex, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
 tracker = sort.Sort(max_age=16, min_hits=1, iou_threshold=0.3)
 
-class_name = [line.strip() for line in open('config/class_name.txt').readlines()]
-interpreter = tf.lite.Interpreter(model_path='config/model.tflite')
+class_name = [line.strip() for line in open('config/class_name_2.txt').readlines()]
+interpreter = tf.lite.Interpreter(model_path='config/model_2.tflite')
 interpreter.allocate_tensors()
 
 
@@ -43,13 +49,13 @@ counter = utill.Counter()
 G = (0, 255, 0)
 R = (0, 0, 255)
 
-while True:
+for _ in tqdm(range(total)):
     # capture frame-by-frame from video file
     ret, frame = capture.read() 
     if ret == False:
         break
 
-    boxes = utill.tfl_predict(frame, config.cfg_lite, class_name, interpreter)
+    boxes = utill.tfl_predict(frame, config.cfg, class_name, interpreter)
     obj = np.zeros((len(boxes), 6))
     for idx in range(len(boxes)):
         obj[idx] = np.array([boxes.iloc[idx,0], boxes.iloc[idx,1], boxes.iloc[idx,2], boxes.iloc[idx,3], boxes.iloc[idx,5], class_name.index(boxes.iloc[idx,4])])

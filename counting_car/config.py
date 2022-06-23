@@ -13,8 +13,8 @@ cfg = {
 
   # Inference
   'max_boxes': 100,
-  'iou_threshold': 0.48,
-  'score_threshold': 0.55,
+  'iou_threshold': 0.5,
+  'score_threshold': 0.6,
 }
 
 
