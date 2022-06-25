@@ -1,6 +1,5 @@
 import cv2 as cv
 import numpy as np
-import virtual_zone
 import sys
 import json
 import tensorflow as tf
@@ -32,8 +31,8 @@ v_zone, _ = cv.findContours(contex, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
 tracker = sort.Sort(max_age=16, min_hits=1, iou_threshold=0.3)
 
-class_name = [line.strip() for line in open('config/class_name_2.txt').readlines()]
-interpreter = tf.lite.Interpreter(model_path='config/model_2.tflite')
+class_name = [line.strip() for line in open('config/class_name.txt').readlines()]
+interpreter = tf.lite.Interpreter(model_path='config/model.tflite')
 interpreter.allocate_tensors()
 
 

@@ -1,0 +1,1 @@
+{"heavy_vehicle": 0, "light_vehicle": 4, "motor_vehicle": 2, "unknow_vehicle": 0}
