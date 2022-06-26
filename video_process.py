@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import json
 import tensorflow as tf
+import os
 
 from tqdm import tqdm
 from counting_car import config
@@ -12,13 +13,18 @@ from counting_car import sort
 from matplotlib import pyplot as plt
 
 capture = cv.VideoCapture(sys.argv[1])
+filename = os.path.basename(sys.argv[1])
+filename = os.path.splitext(filename)
+filename = filename[0]
 
 total = int(capture.get(cv.CAP_PROP_FRAME_COUNT))
 print('total frame : {}'.format(total))		
 
 frame_width = int(capture.get(3))
 frame_height = int(capture.get(4))
-out = cv.VideoWriter('output.avi',cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
+
+export_path = sys.argv[3]
+out = cv.VideoWriter(os.path.join(export_path ,f'out-{filename}.avi'),cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
 
 with open(sys.argv[2]) as file:
   data = json.load(file)
@@ -31,6 +37,7 @@ v_zone, _ = cv.findContours(contex, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
 tracker = sort.Sort(max_age=16, min_hits=1, iou_threshold=0.3)
 
+#need configuration
 class_name = [line.strip() for line in open('config/class_name.txt').readlines()]
 interpreter = tf.lite.Interpreter(model_path='config/model.tflite')
 interpreter.allocate_tensors()
@@ -105,5 +112,5 @@ for _ in tqdm(range(total)):
         break
 
 
-with open('./output.txt', 'w') as file:
+with open(os.path.join(export_path ,f'out-{filename}.txt'), 'w') as file:
     json.dump(temp_data, file)
