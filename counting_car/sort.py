@@ -129,7 +129,7 @@ class KalmanBoxTracker(object):
     self.history = []
     self.hits += 1
     self.hit_streak += 1
-    if self.score < bbox[4]:
+    if self.score <= bbox[4]:
       self.score = bbox[4]
       self.classes = bbox[5]
     self.kf.update(convert_bbox_to_z(bbox))
