@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import cv2
+import cv2 as cv
 import tensorflow as tf
 import json
 
@@ -10,7 +10,9 @@ from matplotlib import pyplot as plt
 from six import iteritems
 from tqdm import tqdm
 from tensorflow.keras import layers, models, optimizers
+
 from counting_car.layer import CSPDarkNet53, PANet, yolo_detector
+from counting_car import sort
 
 
 class YoloV4(object):
@@ -61,7 +63,7 @@ class YoloV4(object):
     
     def preprocessing_image(self, img):
         img = img /255
-        img = cv2.resize(img, self.image_size[:2])
+        img = cv.resize(img, self.image_size[:2])
         return img
 
     def predict(self, img_path, plot_img=True):
@@ -108,6 +110,54 @@ class YoloV4(object):
                     y2 = round(y1 + (object['h'] * img[0]))
                     gt_file.write('{0} {1} {2} {3} {4}\n'.format(object['class'], x1, y1, x2, y2))
     
+    def export_video_predict(self, video_source, virtual_zone_path, export_path, betch_size=10, filter_threshold=0.7):
+        video = cv.VideoCapture(video_source)
+        frame_width = int(video.get(3))
+        frame_height = int(video.get(4))
+        frame_length = int(video.get(cv.CAP_PROP_FRAME_COUNT))
+        filename = os.path.basename(video_source)
+        filename = os.path.splitext(filename) 
+        out = cv.VideoWriter(os.path.join(export_path, f'out-{filename[0]}.avi'),cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
+
+        with open(virtual_zone_path) as file:
+            data = json.load(file)
+        RoI = [(data['area'][idx], data['area'][idx+1]) for idx in range(0, len(data['area']), 2)]
+        RoI = [ (round(x*frame_width), round(y*frame_height)) for x, y in RoI]
+
+        tracker = sort.Sort(max_age=16, min_hits=1, iou_threshold=0.3)
+        counter = utill.Counter()
+
+        temp_data = {
+            'heavy_vehicle' : 0,
+            'light_vehicle' : 0,
+            'motor_vehicle' : 0,
+            'unknow_vehicle' : 0
+        }
+
+
+        for i in tqdm(range(0,frame_length, betch_size)):
+            if i + betch_size > frame_length:
+                buffer = np.zeros((frame_length - i, frame_height, frame_width, 3), dtype=np.uint8)
+            else:
+                buffer = np.zeros((betch_size, frame_height, frame_width, 3), dtype=np.uint8)
+            
+            #read buffer
+            for i in range(buffer.shape[0]):
+                ret, frame = video.read()
+                if ret == False:
+                    break
+                buffer[i] = frame
+            # object detection process
+            imgs = [self.preprocessing_image(buffer[i]) for i in range(buffer.shape[0])]
+            output = self.inferance_model.predict(imgs)
+            boxes = utill.get_detection_data(output)
+            boxes = utill.filtter(boxes, filter_threshold)
+            
+
+
+            
+
+
     def export_predict(self, image_anotation, image_folder_path, export_path, betch_size=2):
         filenames = [line['filename'] for line in image_anotation]
         img_paths = [os.path.join(image_folder_path, name) for name in filenames]

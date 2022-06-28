@@ -569,7 +569,7 @@ def draw_bbox_sort(raw_img, obj, class_name, color):
 
 
 class Counter:
-    def __init__(self, max_age = 5):
+    def __init__(self, max_age = 12):
         self.leak = []
         self.max_age = max_age
 
