@@ -5,6 +5,8 @@ import json
 import tensorflow as tf
 import os
 
+tf.lite.experimental.load_delegate()
+
 from tqdm import tqdm
 from counting_car import config
 from counting_car import utill
@@ -62,6 +64,7 @@ for _ in tqdm(range(total)):
         break
 
     boxes = utill.tfl_predict(frame, config.cfg, class_name, interpreter)
+    
     obj = np.zeros((len(boxes), 6))
     for idx in range(len(boxes)):
         obj[idx] = np.array([boxes.iloc[idx,0], boxes.iloc[idx,1], boxes.iloc[idx,2], boxes.iloc[idx,3], boxes.iloc[idx,5], class_name.index(boxes.iloc[idx,4])])
