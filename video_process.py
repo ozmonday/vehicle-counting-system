@@ -38,8 +38,8 @@ v_zone, _ = cv.findContours(contex, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 tracker = sort.Sort(max_age=16, min_hits=1, iou_threshold=0.3)
 
 #need configuration
-class_name = [line.strip() for line in open('config/class_name.txt').readlines()]
-interpreter = tf.lite.Interpreter(model_path='config/model.tflite')
+class_name = [line.strip() for line in open(sys.argv[5]).readlines()]
+interpreter = tf.lite.Interpreter(model_path=sys.argv[4])
 interpreter.allocate_tensors()
 
 

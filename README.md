@@ -9,7 +9,7 @@
 
 **4. Get all dependencies `pip install -r  requirments.txt`**
 
-**5. Use command `python video-cap.py <video source> <virtual zone source>`**
+**5. Use command `python video_.py <video source> <virtual zone source> [<export path> <tflite model> <classname model>]`**
 
 ### Download video sample and vitrual zone sample:
 
