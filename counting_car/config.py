@@ -14,7 +14,7 @@ cfg = {
   # Inference
   'max_boxes': 100,
   'iou_threshold': 0.5,
-  'score_threshold': 0.8,
+  'score_threshold': 0.75,
 }
 
 
@@ -34,5 +34,5 @@ cfg_lite = {
   # Inference
   'max_boxes': 100,
   'iou_threshold': 0.5,
-  'score_threshold': 0.8
+  'score_threshold': 0.75
 }
