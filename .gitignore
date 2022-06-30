@@ -18,3 +18,6 @@ config/*.tflite
 semple/semple_video.mp4
 semple/semple_zone.txt
 *.avi
+
+test_zone.py 
+test.py

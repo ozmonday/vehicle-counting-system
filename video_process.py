@@ -5,8 +5,6 @@ import json
 import tensorflow as tf
 import os
 
-tf.lite.experimental.load_delegate()
-
 from tqdm import tqdm
 from counting_car import config
 from counting_car import utill
