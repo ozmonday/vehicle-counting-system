@@ -12,7 +12,6 @@ from tqdm import tqdm
 from tensorflow.keras import layers, models, optimizers
 
 from counting_car.layer import CSPDarkNet53, PANet, yolo_detector
-from counting_car import sort
 
 
 class YoloV4(object):
