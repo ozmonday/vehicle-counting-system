@@ -24,7 +24,7 @@ frame_width = int(capture.get(3))
 frame_height = int(capture.get(4))
 
 export_path = sys.argv[3]
-out = cv.VideoWriter(os.path.join(export_path ,f'out-{filename}.avi'),cv.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width, frame_height))
+out = cv.VideoWriter(os.path.join(export_path ,f'out-{filename}.avi'),cv.VideoWriter_fourcc('M','J','P','G'), 60, (frame_width, frame_height))
 
 with open(sys.argv[2]) as file:
   data = json.load(file)
@@ -47,7 +47,7 @@ temp_data = {
     'heavy_vehicle' : 0,
     'light_vehicle' : 0,
     'motor_vehicle' : 0,
-    'unknow_vehicle' : 0
+    'log' : []
 }
 
 counter = utill.Counter()
@@ -60,32 +60,34 @@ for _ in tqdm(range(total)):
     ret, frame = capture.read() 
     if ret == False:
         break
-
+    # predict vehicle object 
     boxes = utill.tfl_predict(frame, config.cfg, class_name, interpreter)
-    
     obj = np.zeros((len(boxes), 6))
     for idx in range(len(boxes)):
         obj[idx] = np.array([boxes.iloc[idx,0], boxes.iloc[idx,1], boxes.iloc[idx,2], boxes.iloc[idx,3], boxes.iloc[idx,5], class_name.index(boxes.iloc[idx,4])])
+    
+    # update tracking object
     track = tracker.update(obj)
     
-    cmap = plt.get_cmap('tab20b')
-    colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
+    # update counter object
+    count = counter.update()
     
-    cout = counter.update()
-    for c in cout:
+    for c in count:
+        temp_data['log'].append(c)
+
         if c in ['articulated_truck', 'bus', 'single_unit_truck']:
             temp_data['heavy_vehicle'] += 1
         elif c in ['car', 'pickup_truck', 'work_van']:
             temp_data['light_vehicle'] += 1
         elif c in ['motorcycle']:
             temp_data['motor_vehicle'] += 1
-        else:
-            temp_data['unknow_vehicle'] += 1
+
+    cmap = plt.get_cmap('tab20b')
+    colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
 
     cv.putText(frame, 'heavy_vehicle : ' + str(temp_data['heavy_vehicle']),(50, 50), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
     cv.putText(frame, 'light_vehicle : ' + str(temp_data['light_vehicle']),(50, 80), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
     cv.putText(frame, 'motor_vehicle : ' + str(temp_data['motor_vehicle']),(50, 110), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
-    cv.putText(frame, 'unknow_vehicle : ' + str(temp_data['unknow_vehicle']),(50, 140), cv.FONT_HERSHEY_DUPLEX, 0.75, (255,255,255),2)
 
     fill = []
     for i in range(track.shape[0]):
