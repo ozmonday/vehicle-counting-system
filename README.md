@@ -13,7 +13,7 @@ This is a research project that has a goal for creating an application that can 
 | test-day-10 | 151 | 17 | 1  | 9  | 0.90      | 0.94   | 0.92     |                              |
 
 **How to use:**
-1. Download the tflite model from source https://drive.google.com/drive/folders/1QAH53oghpA64ZugPK4hGR1ApMEAw7UvR?usp=sharing
+1. Download the tflite model from source https://drive.google.com/file/d/1-4s8N9i4VxA04a8pv3ZGDji6Tx1g7zxb/view?usp=sharing
 2. Create vitrual enivironment  `python3 -m virtualenv env`
 3. Get all dependencies `pip install -r  requirments.txt`
 4. Use command `python video_.py <video source> <virtual zone source> [<export path> <tflite model path> <classname model path>]`
