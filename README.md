@@ -1,4 +1,4 @@
-# Vehicle Counting System
+# Vehicle Counting System based on YOLO and SORT algorithm
 This is a research project that has a goal for creating an application that can be used to count vehicle flow in roads . This project used YOLO algorithm for detecting vehicles and SORT algorithm for treacking objects.
 
 https://user-images.githubusercontent.com/56477571/203668533-9f1112cd-fae7-4c22-9b68-34c3d0449634.mp4
